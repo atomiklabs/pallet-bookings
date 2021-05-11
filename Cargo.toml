@@ -1,12 +1,12 @@
 [package]
-authors = ['Substrate DevHub <https://github.com/substrate-developer-hub>']
-description = 'FRAME pallet template for defining custom runtime logic.'
+authors = ['Atomik Labs <https://github.com/atomiklabs>']
+description = 'FRAME pallet enabling bookings via managed slots on-chain.'
 edition = '2018'
-homepage = 'https://substrate.dev'
+homepage = 'https://atomiklabs.io'
 license = 'Unlicense'
-name = 'pallet-template'
-repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
-version = '3.0.0'
+name = 'pallet-bookings'
+repository = 'https://github.com/atomiklabs/bookings-pallet/'
+version = '1.0.0'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
