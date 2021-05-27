@@ -1,20 +1,40 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use pallet::*;
-
 #[cfg(test)]
 mod mock;
-
 #[cfg(test)]
 mod tests;
-
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+pub use pallet::*;
+
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
+	use sp_runtime::{
+		traits::{Saturating},
+	};
+	use frame_support::{
+		dispatch::{DispatchResultWithPostInfo},
+		pallet_prelude::*
+	};
 	use frame_system::pallet_prelude::*;
+
+	#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+	pub enum BookingStatus {
+		Created,
+		Active,
+		Completed,
+	}
+
+	#[derive(Encode, Decode, Clone, Default, Eq, PartialEq, RuntimeDebug)]
+	pub struct BookingConfig<BlockNumber, BookingStatus> {
+		start: BlockNumber,
+		end: BlockNumber,
+		status: BookingStatus,
+	}
+
+	// type BookingConfigOf<T> = BookingConfig<<T as frame_system::Config>::BlockNumber, BookingStatus>;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -29,10 +49,15 @@ pub mod pallet {
 	#[pallet::getter(fn something)]
 	pub type Something<T> = StorageValue<_, u32>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn booking)]
+	pub type Booking<T: Config> = StorageValue<_, BookingConfig<T::BlockNumber, BookingStatus>>;
+
 	#[pallet::event]
 	#[pallet::metadata(T::AccountId = "AccountId")]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		CreateBooking(T::BlockNumber, T::BlockNumber, BookingStatus),
 		SomethingStored(u32, T::AccountId),
 	}
 
@@ -49,27 +74,35 @@ pub mod pallet {
 	impl<T:Config> Pallet<T> {
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
+		pub fn create_booking(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			let _caller = ensure_signed(origin)?;
 
-			<Something<T>>::put(something);
+			let time = frame_system::Pallet::<T>::block_number();
 
-			Self::deposit_event(Event::SomethingStored(something, who));
+			let new_booking = BookingConfig {
+				start: time,
+				end: time.saturating_add(10_u32.into()),
+				status: BookingStatus::Created,
+			};
+
+			Booking::<T>::set(Some(new_booking.clone()));
+
+			Self::deposit_event(Event::<T>::CreateBooking(new_booking.start, new_booking.end, new_booking.status));
+
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn cause_error(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			let _who = ensure_signed(origin)?;
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn complete_booking(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			ensure_signed(origin)?;
 
-			match <Something<T>>::get() {
-				None => Err(Error::<T>::NoneValue)?,
-				Some(old) => {
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					<Something<T>>::put(new);
-					Ok(().into())
-				},
-			}
+			Booking::<T>::mutate(|mut booking| {
+				if let Some(config) = &mut booking {
+					config.status = BookingStatus::Completed;
+				}
+			});
+
+			Ok(().into())
 		}
 	}
 }

@@ -1,0 +1,10 @@
+{
+  "BookingStatus": {
+    "_enum": ["Created", "Active", "Completed"]
+  },
+  "BookingConfig": {
+    "start": "BlockNumber",
+    "end": "BlockNumber",
+    "status": "BookingStatus"
+  }
+}
