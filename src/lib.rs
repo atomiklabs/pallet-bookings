@@ -34,6 +34,8 @@ pub mod pallet {
 		status: BookingStatus,
 	}
 
+	// type BookingConfigOf<T> = BookingConfig<<T as frame_system::Config>::BlockNumber, BookingStatus>;
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -83,9 +85,7 @@ pub mod pallet {
 				status: BookingStatus::Created,
 			};
 
-			Booking::<T>::mutate(|booking| {
-				*booking = Some(new_booking.clone());
-			});
+			Booking::<T>::set(Some(new_booking.clone()));
 
 			Self::deposit_event(Event::<T>::CreateBooking(new_booking.start, new_booking.end, new_booking.status));
 
@@ -103,35 +103,6 @@ pub mod pallet {
 			});
 
 			Ok(().into())
-		}
-
-
-
-
-
-
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			<Something<T>>::put(something);
-
-			Self::deposit_event(Event::SomethingStored(something, who));
-			Ok(().into())
-		}
-
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn cause_error(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			let _who = ensure_signed(origin)?;
-
-			match <Something<T>>::get() {
-				None => Err(Error::<T>::NoneValue)?,
-				Some(old) => {
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					<Something<T>>::put(new);
-					Ok(().into())
-				},
-			}
 		}
 	}
 }
